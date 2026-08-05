@@ -48,8 +48,13 @@ let messages = [
 
 const workerUrl = 'https://test-worker.gumarm1.workers.dev'; // URL of the Cloudflare Worker that will handle the API request
 
-// Set initial message
-chatWindow.textContent = "👋 Hello! How can I help you today?";
+// Set initial message 
+const initialAssistantMessage = document.createElement("div"); // Adds the assistant's introduction to the chat window
+initialAssistantMessage.className = "assistant-message";
+initialAssistantMessage.innerHTML = `
+  <h3>Assistant</h3> <p>👋 Hello! How can I help you today?</p>
+`;
+chatWindow.appendChild(initialAssistantMessage);
 
 /* Handle form submit */
 chatForm.addEventListener("submit", async function (event) {
@@ -62,23 +67,23 @@ chatForm.addEventListener("submit", async function (event) {
     return; // Exit the function if input is empty
   } 
 
-  chatWindow.textContent = ''; // Clear chat window for new response
-
   // Add a new paragraph element for the user's message
-  const userMessage = document.createElement("p"); // Create a new paragraph element for the user's message
+  const userMessage = document.createElement("div"); // Create a new paragraph element for the user's message
   userMessage.className = "user-message";
-  userMessage.textContent = `You: ${prompt}`;
+  userMessage.innerHTML = `
+  <h3>You</h3> <p>${prompt}</p>
+  `;
   chatWindow.appendChild(userMessage);
 
-  
-  // Adds the assistant's reply to the chat window
-    const assistantMessage = document.createElement("p");
-    assistantMessage.className = "assistant-message";
-    assistantMessage.textContent = "Thinking..."; // Show processing message
-    chatWindow.appendChild(assistantMessage);
+  // Create a fresh assistant message block so older replies stay on screen.
+  const assistantMessage = document.createElement("div");
+  assistantMessage.className = "assistant-message";
+  assistantMessage.textContent = "Thinking..."; // Show processing message
+  chatWindow.appendChild(assistantMessage); // Append the assistant's message to the chat window
+  chatWindow.scrollTop = chatWindow.scrollHeight; // Scroll to the bottom of the chat window
 
   messages.push({ role: 'user', content: prompt }); // Add user message to messages array before sending to the API
-  console.log("Prompt submitted"); // Log form submission for debugging
+  console.log("Prompt submitted. Fetching response..."); // Log form submission for debugging
 
   const fullHistory = [...messages] // Create a copy of the full conversation history to send to the API
 
@@ -105,15 +110,21 @@ chatForm.addEventListener("submit", async function (event) {
 
     // Get the reply from OpenAI's response structure
     const replyText = result.choices[0].message.content;
+    console.log("Reply received:", replyText); // Log the assistant's reply for debugging
 
     // Add the assistant's reply to the messages array AKA the conversation history
     messages.push({ role: 'assistant', content: replyText });
 
-    assistantMessage.textContent = replyText;
+    // Update the assistant's message in the chat window
+    assistantMessage.innerHTML = `
+    <h3>Assistant</h3> <p>${replyText}</p>
+    `; 
+    chatWindow.scrollTop = chatWindow.scrollHeight; // Scroll to the bottom of the chat window to show the latest message
 
   } catch (error) {
     console.error('Error:', error); // Log any errors to the console
     assistantMessage.textContent = "Sorry! An error occurred while processing your request. Please try again later."; // Show error message to the user
+    return; // Exit the function if an error occurs
   }
 
   // Clear the user input field after submission
